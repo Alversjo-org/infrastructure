@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Put the `alversjo.land` zone under dnscontrol in this repo, create the two Fly apps the platform needs, point DNS at them, and get TLS certificates issued.
+**Goal:** Put the `alversjo.land` zone under dnscontrol in this repo (the org's infrastructure repo, DNS is its first content), create the two Fly apps the platform needs, point DNS at them, and get TLS certificates issued.
 
 **Architecture:** One `dnsconfig.js` describes the whole zone. `creds.json` reads the Cloudflare token from an env var, so the file is safe to commit. GitHub Actions previews on pull requests and pushes on `main`. The Fly apps are created empty here (no deploy) because DNS records and certificates need their IPs before the platform exists.
 
@@ -47,7 +47,7 @@
 
 - [ ] **Step 2: Write `dnsconfig.js` from the exported zone**
 
-This is the zone as exported on 2026-09-15 by `dnscontrol get-zones`, cleaned up. Keep every existing record; they serve mail and the old website.
+This is the zone as exported on 2026-09-15 by `dnscontrol get-zones`, cleaned up. Keep every existing record; they serve mail and the old website. Before writing, re-export (`dnscontrol get-zones --creds creds.json --format=js cloudflare alversjo.land`) and fold in any record added since; Step 5 catches the rest.
 
 ```js
 var DSP_CLOUDFLARE = NewDnsProvider("cloudflare", "CLOUDFLAREAPI");
@@ -80,10 +80,15 @@ D("alversjo.land", REG_NONE,
   CNAME("autodiscover", "autoconfig-nonssl.mail.hostpoint.ch."),
   TXT("@", "v=spf1 redirect=spf.mail.hostpoint.ch"),
 
-  // Resend sending domain (send.alversjo.land)
+  // Resend sending domain send.alversjo.land (a different Resend account; keep, do not touch)
   MX("send", 10, "feedback-smtp.eu-west-1.amazonses.com.", TTL(3600)),
   TXT("send", "v=spf1 include:amazonses.com ~all", TTL(3600)),
   TXT("resend._domainkey", "p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC04WlSM2nTC2I8ZdLxx4ClFBJFG21oy5VFeSl6t9kUanyC+3slAL2Ycq4YoKOGld3z7yMeCwYarIut1rVpEAfS3MbfOBljMCQttoM+OAqmfEY0ERV7UIuygZy7sL3Tfn0r6CeGWTkRVjcOE5Vb/Tul4xH9oxYcc7opjik+ZptC4wIDAQAB", TTL(3600)),
+
+  // Resend sending domain notifications.alversjo.land (the platform sends from here)
+  MX("send.notifications", 10, "feedback-smtp.eu-west-1.amazonses.com.", TTL(3600)),
+  TXT("send.notifications", "v=spf1 include:amazonses.com ~all", TTL(3600)),
+  TXT("resend._domainkey.notifications", "p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDd1etR6cCkj8x31erjAx+DwURLXbpoRAQlhP3WkTccFnDfwV3iemItVo3X3epVC00Mbjl6yAFJBYRam09WEjYZqXTfnaaBl+08s3En6LhwOGR+eghU5omWxni6/oQftvn17aYvmvUbdc91JtV7iv/s2FBtpohEr+3tWPBWLbBqywIDAQAB", TTL(3600)),
 );
 ```
 
@@ -173,7 +178,7 @@ Expected: empty table. Boxes are reached only over the private network.
 
 **Interfaces:**
 - Consumes: IPv4 and IPv6 from Task 2.
-- Produces: `platform.alversjo.land` and `*.boxes.alversjo.land` resolving to the platform app.
+- Produces: `members.alversjo.land` and `*.boxes.alversjo.land` resolving to the platform app.
 
 - [ ] **Step 1: Add the records**
 
@@ -181,8 +186,8 @@ Insert this block inside `D("alversjo.land", ...)` after the Resend records, rep
 
 ```js
   // Alversjö platform on Fly (app alversjo-platform). DNS-only: Fly terminates TLS.
-  A("platform", "<IPv4 from fly ips list>"),
-  AAAA("platform", "<IPv6 from fly ips list>"),
+  A("members", "<IPv4 from fly ips list>"),
+  AAAA("members", "<IPv6 from fly ips list>"),
   A("*.boxes", "<IPv4 from fly ips list>"),
   AAAA("*.boxes", "<IPv6 from fly ips list>"),
 ```
@@ -193,13 +198,13 @@ Insert this block inside `D("alversjo.land", ...)` after the Resend records, rep
 dnscontrol preview
 ```
 
-Expected: exactly 4 corrections, all `+ CREATE`, for `platform.alversjo.land` (A, AAAA) and `*.boxes.alversjo.land` (A, AAAA). Nothing else changes.
+Expected: exactly 4 corrections, all `+ CREATE`, for `members.alversjo.land` (A, AAAA) and `*.boxes.alversjo.land` (A, AAAA). Nothing else changes.
 
 - [ ] **Step 3: Push and verify resolution**
 
 ```bash
 dnscontrol push
-dig +short platform.alversjo.land A
+dig +short members.alversjo.land A
 dig +short anything.boxes.alversjo.land A
 ```
 
@@ -221,12 +226,12 @@ git push
 - Modify: `dnsconfig.js`
 
 **Interfaces:**
-- Produces: issued Fly certificates for `platform.alversjo.land` and `*.boxes.alversjo.land`.
+- Produces: issued Fly certificates for `members.alversjo.land` and `*.boxes.alversjo.land`.
 
 - [ ] **Step 1: Request both certificates**
 
 ```bash
-fly certs add platform.alversjo.land -a alversjo-platform
+fly certs add members.alversjo.land -a alversjo-platform
 fly certs add "*.boxes.alversjo.land" -a alversjo-platform
 ```
 
@@ -235,7 +240,7 @@ Expected: each command prints the hostname and a DNS validation instruction of t
 - [ ] **Step 2: Read the exact validation targets**
 
 ```bash
-fly certs show platform.alversjo.land -a alversjo-platform
+fly certs show members.alversjo.land -a alversjo-platform
 fly certs show "*.boxes.alversjo.land" -a alversjo-platform
 ```
 
@@ -247,7 +252,7 @@ Append inside the `D(...)` block:
 
 ```js
   // ACME DNS-01 validation for Fly certificates
-  CNAME("_acme-challenge.platform", "<target from fly certs show>."),
+  CNAME("_acme-challenge.members", "<target from fly certs show>."),
   CNAME("_acme-challenge.boxes", "<target from fly certs show for *.boxes>."),
 ```
 
@@ -282,10 +287,10 @@ git push
 - [ ] **Step 1: Store the token as a repository secret**
 
 ```bash
-gh secret set CLOUDFLARE_API_TOKEN -R Alversjo-org/dns
+gh secret set CLOUDFLARE_API_TOKEN -R Alversjo-org/infrastructure
 ```
 
-Paste the token when prompted. Expected: `✓ Set Actions secret CLOUDFLARE_API_TOKEN for Alversjo-org/dns`.
+Paste the token when prompted. Expected: `✓ Set Actions secret CLOUDFLARE_API_TOKEN for Alversjo-org/infrastructure`.
 
 - [ ] **Step 2: Write the workflow**
 
@@ -325,7 +330,7 @@ jobs:
 git add .github/workflows/dns.yml
 git commit -m "CI: dnscontrol preview on PRs, push on main"
 git push
-gh run watch -R Alversjo-org/dns --exit-status
+gh run watch -R Alversjo-org/infrastructure --exit-status
 ```
 
 Expected: the run succeeds and the `Push` step logs `0 corrections`, because the zone already matches.

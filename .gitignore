@@ -1,2 +1,4 @@
 zones/
 *.bak
+*.env
+secrets.env

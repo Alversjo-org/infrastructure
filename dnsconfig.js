@@ -37,4 +37,10 @@ D("alversjo.land", REG_NONE,
   MX("send.notifications", 10, "feedback-smtp.eu-west-1.amazonses.com.", TTL(3600)),
   TXT("send.notifications", "v=spf1 include:amazonses.com ~all", TTL(3600)),
   TXT("resend._domainkey.notifications", "p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDd1etR6cCkj8x31erjAx+DwURLXbpoRAQlhP3WkTccFnDfwV3iemItVo3X3epVC00Mbjl6yAFJBYRam09WEjYZqXTfnaaBl+08s3En6LhwOGR+eghU5omWxni6/oQftvn17aYvmvUbdc91JtV7iv/s2FBtpohEr+3tWPBWLbBqywIDAQAB", TTL(3600)),
+
+  // Alversjö platform on Fly (app alversjo-platform). DNS-only: Fly terminates TLS.
+  A("members", "137.66.44.32"),
+  AAAA("members", "2a09:8280:1::18f:813:0"),
+  A("*.boxes", "137.66.44.32"),
+  AAAA("*.boxes", "2a09:8280:1::18f:813:0"),
 );

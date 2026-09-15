@@ -240,11 +240,13 @@ Expected: each command prints the hostname and a DNS validation instruction of t
 - [ ] **Step 2: Read the exact validation targets**
 
 ```bash
-fly certs show members.alversjo.land -a alversjo-platform
-fly certs show "*.boxes.alversjo.land" -a alversjo-platform
+fly certs setup members.alversjo.land -a alversjo-platform
+fly certs setup "*.boxes.alversjo.land" -a alversjo-platform
 ```
 
-Expected: a `DNS Validation Target` line for each. Copy both targets.
+Expected: on current flyctl, `fly certs show` does not print a `DNS
+Validation Target` line; `fly certs setup <hostname> -a alversjo-platform`
+prints the CNAME targets instead. Copy both targets.
 
 - [ ] **Step 3: Add the validation CNAMEs**
 

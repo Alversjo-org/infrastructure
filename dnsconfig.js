@@ -7,7 +7,7 @@ var HOSTPOINT_V6 = "2a00:d70:0:b:2002:0:d91a:3423";
 
 D("alversjo.land", REG_NONE,
   DnsProvider(DSP_CLOUDFLARE),
-  DefaultTTL(1),
+  DefaultTTL(1), // 1 is Cloudflare's "automatic" TTL sentinel, not one second
 
   // Old website + catch-all
   A("@", HOSTPOINT_V4),
@@ -41,10 +41,16 @@ D("alversjo.land", REG_NONE,
   // Alversjö platform on Fly (app alversjo-platform). DNS-only: Fly terminates TLS.
   A("members", "137.66.44.32"),
   AAAA("members", "2a09:8280:1::18f:813:0"),
+  // Note: the bare name boxes.alversjo.land still falls through to the "*"
+  // wildcard above (Cloudflare wildcard semantics: "*.boxes" only matches
+  // names under boxes, not boxes itself) and is not covered by the
+  // *.boxes certificate. Accepted for v0.
   A("*.boxes", "137.66.44.32"),
   AAAA("*.boxes", "2a09:8280:1::18f:813:0"),
 
-  // ACME DNS-01 validation for Fly certificates
+  // ACME DNS-01 validation for Fly certificates. These records are permanent:
+  // Fly re-validates on every renewal, so they must never be removed while
+  // the certs exist.
   CNAME("_acme-challenge.members", "members.alversjo.land.o905m19.flydns.net."),
   CNAME("_acme-challenge.boxes", "boxes.alversjo.land.o905m19.flydns.net."),
 );

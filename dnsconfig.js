@@ -43,4 +43,8 @@ D("alversjo.land", REG_NONE,
   AAAA("members", "2a09:8280:1::18f:813:0"),
   A("*.boxes", "137.66.44.32"),
   AAAA("*.boxes", "2a09:8280:1::18f:813:0"),
+
+  // ACME DNS-01 validation for Fly certificates
+  CNAME("_acme-challenge.members", "members.alversjo.land.o905m19.flydns.net."),
+  CNAME("_acme-challenge.boxes", "boxes.alversjo.land.o905m19.flydns.net."),
 );
